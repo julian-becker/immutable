@@ -75,8 +75,12 @@ namespace imm {
             return fallback;
         }
 
-        T const& get() const {
+        T const& get() const & {
             return *reinterpret_cast<T const*>(&m_value);
+        }
+
+        T get() && {
+            return { std::move(value()) };
         }
 
         friend bool operator == (optional const& opt, NothingT) {
@@ -99,8 +103,12 @@ namespace imm {
             return !opt.m_empty;
         }
 
-        friend bool operator == (optional const& opt, T const& val) {
-            return opt.get() == val;
+        T const& operator* () const & {
+            return get();
+        }
+
+        T operator* () && {
+            return { std::move(value()) };
         }
 
     private:

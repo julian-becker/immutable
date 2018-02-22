@@ -33,6 +33,7 @@ TEST_CASE("optional init","[optional-instantiation]") {
     GIVEN("a value-initialized optional") {
         optional<int> opt{42};
         THEN("it is not in the empty state") {
+            CHECK(nothing != opt);
             REQUIRE(opt != nothing);
         }
     }
@@ -44,7 +45,8 @@ TEST_CASE("optional init value","[optional-instantiation]") {
     GIVEN("a value-initialized optional") {
         optional<int> opt{42};
         THEN("contains the value given upon initialization") {
-            REQUIRE(opt == 42);
+            CHECK(*opt == 42);
+            REQUIRE(42 == *opt);
         }
     }
 }
@@ -53,7 +55,8 @@ TEST_CASE("optional value inequality","[optional-instantiation]") {
     GIVEN("a value-initialized optional") {
         optional<int> opt{42};
         THEN("is not equal to a value different from the initialization value") {
-            REQUIRE(!(opt == 43));
+            CHECK(!(43 == *opt));
+            REQUIRE(!(*opt == 43));
         }
     }
 }
@@ -111,7 +114,7 @@ TEST_CASE("optional move constructor", "[optional-construction]") {
             auto move_copy{std::move(orig)};
 
             THEN("the copy contains the value from the original and the original is empty") {
-                CHECK(move_copy == 42);
+                CHECK(*move_copy == 42);
                 REQUIRE(orig == nothing);
             }
         }
@@ -153,6 +156,98 @@ TEST_CASE("optional destructor", "[optional-destruct]") {
 
         THEN("the destructor is called") {
             REQUIRE(destructed);
+        }
+    }
+}
+
+
+TEST_CASE("optional move from temporary", "[optional-move]") {
+    struct some_type {
+        int* m_destructed;
+        int* m_copied;
+        int* m_moved;
+
+        some_type(int* destructed, int* copied, int* moved)
+            : m_destructed{std::move(destructed)}
+            , m_copied{std::move(copied)}
+            , m_moved{std::move(moved)}
+        {}
+
+        some_type(some_type& other)
+            : m_destructed{other.m_destructed}
+            , m_copied{std::move(other.m_copied)}
+            , m_moved{std::move(other.m_moved)}
+        {
+            ++*(m_copied);
+        }
+
+        some_type& operator= (some_type const& other) {
+            ++*(m_copied);
+            ++*(other.m_copied);
+            return *this;
+        }
+
+        some_type& operator= (some_type const&& other) {
+            ++*m_moved;
+            ++*(other.m_moved);
+            return *this;
+        }
+
+        some_type(some_type&& other)
+            : m_destructed{other.m_destructed}
+            , m_copied{std::move(other.m_copied)}
+            , m_moved{std::move(other.m_moved)}
+        {
+            ++*m_moved;
+        }
+
+        ~some_type() {
+            ++*m_destructed;
+        }
+    };
+
+    WHEN("An a temporary optional is moved from") {
+
+        int destructed = 0;
+        int copied = 0;
+        int moved = 0;
+        {
+            optional<some_type> opt{&destructed, &copied, &moved};
+            some_type x = *std::move(opt);
+        }
+
+        THEN("the no copy is created, but the contained value is moved") {
+            CHECK(moved == 1);
+            REQUIRE(copied == 0);
+        }
+    }
+
+    WHEN("An a temporary optional is moved from via get()") {
+        int destructed = 0;
+        int copied = 0;
+        int moved = 0;
+        {
+            optional<some_type> opt{&destructed, &copied, &moved};
+            some_type x = std::move(opt).get();
+        }
+
+        THEN("the no copy is created, but the contained value is moved") {
+            CHECK(moved == 1);
+            REQUIRE(copied == 0);
+        }
+    }
+
+    WHEN("An a temporary optional is moved from via get()") {
+        int destructed = 0;
+        int copied = 0;
+        int moved = 0;
+        {
+            some_type x = optional<some_type>{&destructed, &copied, &moved}.get();
+        }
+
+        THEN("the no copy is created, but the contained value is moved") {
+            CHECK(moved == 1);
+            REQUIRE(copied == 0);
         }
     }
 }
