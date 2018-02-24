@@ -15,6 +15,9 @@ add_module(NAME immutable-vector_test)
 add_module(NAME immutable-optional)
 add_module(NAME immutable-optional_test)
 
+add_module(NAME wrapper)
+add_module(NAME wrapper_test)
+
 add_module(NAME immutable)
 
 add_subdirectory(doc)

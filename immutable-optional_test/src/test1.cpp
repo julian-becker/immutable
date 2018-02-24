@@ -173,7 +173,7 @@ TEST_CASE("optional move from temporary", "[optional-move]") {
             , m_moved{std::move(moved)}
         {}
 
-        some_type(some_type& other)
+        some_type(some_type const& other)
             : m_destructed{other.m_destructed}
             , m_copied{std::move(other.m_copied)}
             , m_moved{std::move(other.m_moved)}
